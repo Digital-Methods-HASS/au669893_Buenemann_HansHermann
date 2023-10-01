@@ -11,6 +11,7 @@ I have installed the relevant package 'tidyverse' now applying:
 
 ```{r libraries}
 library(tidyverse)
+library(ggplot2)
 ```
 
 ## Task A
@@ -38,19 +39,43 @@ If I hadn't done that, i could create the column by using the mutate() function:
 
 Now for creating the visualization:
 
-(I made a column in excel called "nr_monark" with values corresponding to the monarchs' number in time, because i couldn't figure out how to create it in R.)
+(I made a column in excel called "nr_monark" with values corresponding to the monarchs' number in time, because I couldn't figure out how to create it in R.)
 
 ```{r}
 
-monarker %>% 
-  ggplot(aes(x = reorder(monark, +nr_monark), y = regeringstid))+
-  geom_bar(stat = "identity")+
-  labs(title = "Duration of reign among danish monarchs through time",
+monarker %>%
+  ggplot(aes(x = reorder(monark, +nr_monark), y = regeringstid)) +
+  geom_bar(stat = "identity") +
+  stat_smooth(method = "lm", se = FALSE, color = "blue") +
+  labs(title = "Duration of reign among Danish monarchs through time",
        x = "Monarch",
-       y = "Years ruled")+
-  theme_bw()+
+       y = "Years ruled") +
+  theme_bw() +
   theme(axis.text.x = element_text(size = 7.5, angle = 90, hjust = 1, vjust = 0.3),
         axis.text.y = element_text(colour = "grey20", size = 12),
         text = element_text(size = 14))
 
 ```
+
+This is the code that I could figure out. the "stat_smooth(method ="lm", se = FALSE, color = "blue")" line is what i could read about on resources online that should create a trendline, however, it doesn't show up, and i get a message: "[38;5;232m`geom_smooth()` using formula = 'y \~ x'[39m". From what I can gather, the code should work, and maybe there is an issue in my installation. Eventually, i got expert help and wrote the following code, but it is a bit above my head, so I can't really explain how it works / what it does exactly.
+
+```{r}
+monarker$order <- 1:nrow(monarker)
+
+monarker$monark_ordered <- factor(monarker$monark, levels = unique(monarker$monark), ordered = TRUE)
+
+monarker %>%
+  ggplot(aes(x = monark_ordered, y = regeringstid)) +
+  geom_bar(stat = "identity") +
+  stat_smooth(aes(x = as.numeric(monark_ordered)), method = "lm", se = FALSE, color = "blue") +
+  labs(title = "Duration of reign among Danish monarchs through time",
+       x = "Monarch",
+       y = "Years ruled") +
+  theme_bw() +
+  theme(axis.text.x = element_text(size = 7.5, angle = 90, hjust = 1, vjust = 0.3),
+        axis.text.y = element_text(colour = "grey20", size = 12),
+        text = element_text(size = 14))
+
+```
+
+The trend line indicates that there is a trend towards monarchs reigning for longer.
