@@ -1,0 +1,268 @@
+---
+title: "HW5 - Make Data Move"
+author: ""
+date: "05/10/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Explore global development with R
+
+Today, you will load a filtered gapminder dataset - with a subset of data on global development from 1952 - 2007 in increments of 5 years - to capture the period between the Second World War and the Global Financial Crisis.
+
+**Your task: Explore the data and visualise it in both static and animated ways, providing answers and solutions to 7 questions/tasks below.**
+
+## Get the necessary packages
+
+First, start with installing the relevant packages 'tidyverse', 'gganimate', and 'gapminder'.
+
+```{r libraries, echo = FALSE}
+# install.packages("gganimate")
+# install.packages("gifski")
+# install.packages("av")
+# install.packages("gapminder")
+library(tidyverse)
+library(gganimate)
+library(gifski)
+library(av)
+library(gapminder)
+```
+
+## Look at the data and tackle the tasks
+
+First, see which specific years are actually represented in the dataset and what variables are being recorded for each country. Note that when you run the cell below, Rmarkdown will give you two results - one for each line - that you can flip between.
+
+```{r}
+str(gapminder)
+unique(gapminder$year)
+head(gapminder)
+```
+
+The dataset contains information on each country in the sampled year, its continent, life expectancy, population, and GDP per capita.
+
+Let's plot all the countries in 1952.
+
+```{r 1957}
+theme_set(theme_bw())  # set theme to white background for better visibility
+
+ggplot(subset(gapminder, year == 1952), aes(gdpPercap, lifeExp, size = pop)) +
+  geom_point() +
+  scale_x_log10() 
+```
+
+...
+
+We see an interesting spread with an outlier to the right. Answer the following questions, please:
+
+1.  *Why does it make sense to have a log10 scale on x axis?*
+
+    Answer: Because if we didn't do log10, the outlier on the right would skew the graph, where all the other countries would be in a line on the left. That's because the outlier has a 10x higher gdp per capita than the next richest country. Look at the graph if we remove the log10:
+
+```{r}
+theme_set(theme_bw())  # set theme to white background for better visibility
+
+ggplot(subset(gapminder, year == 1952), aes(gdpPercap, lifeExp, size = pop)) +
+  geom_point()
+```
+
+2.  *Who is the outlier (the richest country in 1952 - far right on x axis)?*
+
+    Answer: To find out, I execute the following code:
+
+```{r}
+
+gapminder %>% 
+  filter(gdpPercap > 90000, year == 1952)
+
+```
+
+I use filter(gdpPercap \> 90000) because I could see in the graph above that the outlier was the only country with a value over 90.000. We can see the outlier in 1952 was Kuwait.
+
+Next, you can generate a similar plot for 2007 and compare the differences
+
+```{r 2007}
+ggplot(subset(gapminder, year == 2007), aes(gdpPercap, lifeExp, size = pop)) +
+  geom_point() +
+  scale_x_log10() 
+```
+
+...
+
+The black bubbles are a bit hard to read, the comparison would be easier with a bit more visual differentiation.
+
+Tasks:
+
+3.  *Differentiate the **continents** by color, and fix the axis labels and units to be more legible (**Hint**: the 2.50e+08 is so called "scientific notation", which you might want to eliminate)*
+
+```{r}
+
+ggplot(subset(gapminder, year == 2007), aes(gdpPercap, lifeExp, size = pop, color = continent)) +
+  geom_point() +
+  scale_x_log10() +
+  labs(title = "2007", x = "GDP per capita", y = "Life Expectancy", size = "Population" ) +
+  scale_size_continuous(labels = function(x) format(x, scientific = FALSE))
+```
+
+3.  *What are the five richest countries in the world in 2007?*
+
+```{r}
+gapminder %>% 
+  filter(year == 2007) %>% 
+  top_n(5, gdpPercap) %>% 
+  arrange(desc(gdpPercap))
+```
+
+Answer: The five richest countries (by GDP per capita) in 2007 was Norway, Kuwait, Singapore, United States and Ireland.
+
+## Make it move!
+
+The comparison would be easier if we had the two graphs together, animated. We have a lovely tool in R to do this: the `gganimate` package. Beware that there may be other packages your operating system needs in order to glue interim images into an animation or video. Read the messages when installing the package.
+
+Also, there are *two* ways of animating the gapminder ggplot.
+
+### Option 1: Animate using transition_states()
+
+The first step is to create the object-to-be-animated
+
+```{r anim1 start}
+anim <- ggplot(gapminder, aes(gdpPercap, lifeExp, size = pop)) +
+  geom_point() +
+  scale_x_log10()  # convert x to log scale
+anim
+```
+
+...
+
+This plot collates all the points across time. The next step is to split it into years and animate it. This may take some time, depending on the processing power of your computer (and other things you are asking it to do). Beware that the animation might appear in the bottom right 'Viewer' pane, not in this rmd preview. You need to `knit` the document to get the visual inside an html file.
+
+```{r anim1}
+anim + transition_states(year, 
+                      transition_length = 1,
+                      state_length = 1)
+
+```
+
+...
+
+Notice how the animation moves jerkily, 'jumping' from one year to the next 12 times in total. This is a bit clunky, which is why it's good we have another option.
+
+### Option 2 Animate using transition_time()
+
+This option smoothes the transition between different 'frames', because it interpolates and adds transitional years where there are gaps in the timeseries data.
+
+```{r anim2}
+anim2 <- ggplot(gapminder, aes(gdpPercap, lifeExp, size = pop)) +
+  geom_point() +
+  scale_x_log10() + # convert x to log scale
+  transition_time(year) 
+anim2
+```
+
+The much smoother movement in Option 2 will be much more noticeable if you add a title to the chart, that will page through the years corresponding to each frame.
+
+Now, choose one of the animation options and get it to work. You may need to troubleshoot your installation of `gganimate` and other packages
+
+5.  *Can you add a title to one or both of the animations above that will change* *in sync with the animation?* *(**Hint**: search labeling for `transition_states()` and `transition_time()` functions respectively)*
+
+```{r}
+anim2 <- ggplot(gapminder, aes(gdpPercap, lifeExp, size = pop)) +
+  geom_point() +
+  scale_x_log10() + # convert x to log scale
+  transition_time(year) +
+  labs(title = 'Year: {closest_state}', x = "GDP per capita", y = "Life Expectancy") +
+  transition_states(year, transition_length = 2, state_length = 1)
+anim2
+```
+
+5.  *Can you made the axes' labels and units more readable? Consider expanding the abreviated lables as well as the scientific notation in the legend and x axis to whole numbers.*
+
+```{r}
+anim3 <- ggplot(gapminder, aes(gdpPercap, lifeExp, size = pop, color = continent)) +
+  geom_point() +
+  scale_x_log10(labels = scales::comma) +
+  transition_time(year) +
+  labs(title = 'Year: {closest_state}', x = "GDP per capita", y = "Life Expectancy", size = "Population") +
+  scale_size_continuous(labels = function(x) format(x, scientific = FALSE)) +
+  transition_states(year, transition_length = 2, state_length = 0) +
+  theme(text = element_text(size = 16))
+  
+  
+anim3
+```
+
+5.  *Come up with a question you want to answer using the gapminder data and write it down. Then, create a data visualisation that answers the question and explain how your visualization answers the question. (Example: you wish to see what was mean life expectancy across the continents in the year you were born versus your parents' birth years). [Hint: if you wish to have more data than is in the filtered gapminder, you can load either the `gapminder_unfiltered` dataset and download more at <https://www.gapminder.org/data/> ]*
+
+I wish to see Denmark's GDP per capita growth in my parent's lifetime. They were both born in 1962.
+
+```{r}
+kundanmark <- gapminder %>%
+  filter(country == "Denmark")
+  
+anim_danmark <- kundanmark %>% 
+  ggplot(aes(x = year, y = gdpPercap))+
+  geom_point(color="red")+
+  geom_smooth()+
+  labs(x="Year", y = "GDP per capita")
+
+anim_danmark
+```
+
+The GDP has risen very linearly from about 10.000 to about 35.000.
+
+I then want to see how this compares to the rest of Europe:
+
+```{r}
+europa <- gapminder %>%
+  filter(continent == "Europe")
+  
+anim_europe <- europa %>% 
+  ggplot(aes(x = year, y = gdpPercap, color = country))+
+  geom_point()+
+  geom_smooth(data = . %>% filter(country == "Denmark"), method=lm, se=FALSE, color = "red") +
+  geom_smooth(data = . %>% filter(country != "Denmark"), method=lm, se=FALSE, color = "blue")+
+  scale_color_manual(values = c("Denmark" = "red")) +
+  labs(x="Year", y = "GDP per capita",)
+
+anim_europe
+
+```
+
+Denmark starts in 1952 with a GDP per capita above the mean, as one of the top countries. It seems that Denmark keeps its advantage above the mean, but more countries are even richer than Denmark in 2007 compared to 1952.
+
+I want to see who were the richest countries in Europe in 1952 and 2007:
+
+```{r}
+europa %>% 
+  filter(year == 1952) %>% 
+  top_n(10, gdpPercap) %>% 
+  arrange(desc(gdpPercap))
+```
+
+in 1952 Denmark was the 4th richest country by GDP per capita, only behind Switzerland, Norway and United Kingdom.
+
+```{r}
+europa %>% 
+  filter(year == 2007) %>% 
+  top_n(10, gdpPercap) %>% 
+  arrange(desc(gdpPercap))
+```
+
+In 2007 Denmark is the 7th richest country by GDP per capita. Now also Austria, Iceland, the Netherlands and Ireland are richer, however United Kingdom has fallen off. That makes me wonder how United Kingdom compares in growth compared to the rest of Europe:
+
+```{r}
+
+anim_europe_uk <- europa %>% 
+  ggplot(aes(x = year, y = gdpPercap, color = country))+
+  geom_point()+
+  geom_smooth(data = . %>% filter(country == "United Kingdom"), method=lm, se=FALSE, color = "red") +
+  geom_smooth(data = . %>% filter(country != "United Kingdom"), method=lm, se=FALSE, color = "blue")+
+  scale_color_manual(values = c("United Kingdom" = "red")) +
+  labs(x="Year", y = "GDP per capita",)
+
+anim_europe_uk
+```
+
+It wasn't as bad as we could have imagined for the UK. UK is still doing well, but not as well as the immense growth that northern Europe has seen.
