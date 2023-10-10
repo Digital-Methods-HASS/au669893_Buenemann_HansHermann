@@ -1,0 +1,311 @@
+---
+title: 'Game of Thrones Sentiment Analysis'
+date: 'created on 6 October 2023 and updated `r format(Sys.time(), "%d %B, %Y")`'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+library(tidyverse)
+library(here)
+
+# For text mining:
+library(pdftools)
+library(tidytext)
+library(textdata) 
+library(ggwordcloud)
+
+```
+
+Getting the GoT data:
+
+```{r}
+got_path <- here("data","got.pdf")
+got_text <- pdf_text(got_path)
+
+```
+
+## Some wrangling:
+
+-   Split up pages into separate lines (separated by \n) using stringr::str_split()
+-   Unnest into regular columns using tidyr::unnest()
+-   Remove leading/trailing white space with stringr::str_trim()
+
+```{r}
+got_df <- data.frame(got_text) %>% 
+  mutate(text_full = str_split(got_text, pattern = '\n')) %>% 
+  unnest(text_full) %>% 
+  mutate(text_full = str_trim(text_full)) 
+```
+
+Now each line, on each page, is its own row, with extra starting & trailing spaces removed.
+
+## Get the tokens (individual words) in tidy format
+
+Use tidytext::unnest_tokens() (which pulls from the tokenizer) package, to split columns into tokens. We are interested in words, so that's the token we'll use:
+
+```{r}
+got_tokens <- got_df %>% 
+  unnest_tokens(word, text_full)
+```
+
+Counting the words:
+
+```{r}
+got_wc <- got_tokens %>% 
+  count(word) %>% 
+  arrange(-n)
+got_wc
+```
+
+## Remove stop words:
+
+See ?stop_words and View(stop_words)to look at documentation for stop words lexicons.
+
+We will remove stop words using tidyr::anti_join():
+
+```{r}
+got_stop <- got_tokens %>% 
+  anti_join(stop_words) %>% 
+  select(-got_text)
+```
+
+Checking counts again:
+
+```{r}
+got_swc <- got_stop %>% 
+  count(word) %>% 
+  arrange(-n)
+got_swc
+```
+
+getting rid of all the numbers (non-text) in got_stop:
+
+```{r}
+# This code will filter out numbers by asking:
+# If you convert to as.numeric, is it NA (meaning those words)?
+# If it IS NA (is.na), then keep it (so all words are kept)
+# Anything that is converted to a number is removed
+
+got_no_numeric <- got_stop %>% 
+  filter(is.na(as.numeric(word)))
+```
+
+## A word cloud of IPCC report words (non-numeric)
+
+Unique words:
+
+```{r}
+length(unique(got_no_numeric$word))
+```
+
+We probably don't want to include them all in a word cloud. Let's filter to only include the top 200 most frequent.
+
+```{r}
+
+got_top120 <- got_no_numeric %>% 
+  count(word) %>% 
+  arrange(-n) %>% 
+  head(120)
+```
+
+```{r}
+got_cloud <- ggplot(data = got_top120, aes(label = word)) +
+  geom_text_wordcloud() +
+  theme_minimal()
+
+got_cloud
+```
+
+Let's customize it:
+
+```{r}
+ggplot(data = got_top120, aes(label = word, size = n)) +
+  geom_text_wordcloud_area(aes(color = n), shape = "diamond") +
+  scale_size_area(max_size = 12) +
+  scale_color_gradientn(colors = c("darkgreen","blue","red")) +
+  theme_minimal()
+```
+
+## Sentiment analysis
+
+Loading the "AFINN" sentiments:
+
+```{r}
+get_sentiments(lexicon = "afinn")
+```
+
+Let's look at the most positive words:
+
+```{r}
+afinn_pos <- get_sentiments("afinn") %>% 
+  filter(value %in% c(5))
+afinn_pos
+
+```
+
+Loading "Bing" sentiments:
+
+```{r}
+get_sentiments(lexicon = "bing")
+```
+
+loading "nrc":
+
+```{r}
+get_sentiments(lexicon = "nrc")
+```
+
+## Sentiment analysis with afinn
+
+First, binding words in got_stop to afinn lexicon:
+
+```{r}
+got_afinn <- got_stop %>% 
+  inner_join(get_sentiments("afinn"))
+```
+
+Let's find some counts (by sentiment ranking):
+
+```{r}
+got_afinn_hist <- got_afinn %>% 
+  count(value)
+
+# Plot them: 
+ggplot(data = got_afinn_hist, aes(x = value, y = n)) +
+  geom_col()
+```
+
+the -5 observations are probably almost all from the word "bastard" (meaning born outside of marriage) which is used quite a lot in GoT, especially when they talk about/to Jon, which we saw earlier is the person most often mentioned.
+
+Investigate some of the words in a bit more depth: let's see if what I just hypothesized is true:
+
+```{r}
+got_afinn %>% 
+  filter(value == -5) %>% 
+  group_by(word) %>% 
+  count()
+
+```
+
+Hey, I was right :)
+
+What are these '4' words? Let's count them:
+
+```{r}
+got_afinn4 <- got_afinn %>% 
+  filter(value == 4)
+got_afinn4
+
+```
+
+And plot them:
+
+```{r}
+got_afinn4_n <- got_afinn4 %>% 
+  count(word, sort = TRUE) %>% 
+  mutate(word = fct_reorder(factor(word), n))
+
+ggplot(data = got_afinn4_n, aes(x = word, y = n)) +
+  geom_col() +
+  coord_flip()
+```
+
+Let's do the same for "1"-valued words:
+
+```{r}
+got_afinn1 <- got_afinn %>% 
+  filter(value == 1)
+got_afinn1
+```
+
+We're going to have to use head() to show only the top occurring words (there are too many to show visually).
+
+```{r}
+got_afinn1_n <- got_afinn1 %>% 
+  count(word, sort = TRUE) %>% 
+  mutate(word = fct_reorder(factor(word), n)) %>% 
+  head(30)
+
+ggplot(data = got_afinn1_n, aes(x = word, y = n)) +
+  geom_col() +
+  coord_flip()
+```
+
+We can summarize sentiment for the book:
+
+```{r}
+got_summary <- got_afinn %>% 
+  summarize(
+    mean_score = mean(value),
+    median_score = median(value)
+  )
+got_summary
+```
+
+The book tends to use more negative words.
+
+## NRC lexicon for sentiment analysis
+
+```{r}
+got_nrc <- got_stop %>% 
+  inner_join(get_sentiments("nrc"))
+```
+
+A lot of the words used in GoT is not going to be included in this sentiment package, since they are names or very odd words such as the use of "ser" instead of "sir".
+
+Checking which words are excluded:
+
+```{r}
+got_exclude <- got_stop %>% 
+  anti_join(get_sentiments("nrc"))
+
+# Count to find the most excluded:
+got_exclude_n <- got_exclude %>% 
+  count(word, sort = TRUE)
+
+head(got_exclude_n)
+```
+
+Now some counts:
+
+```{r}
+got_nrc_n <- got_nrc %>% 
+  count(sentiment, sort = TRUE)
+
+```
+
+And plotting them:
+
+```{r}
+ggplot(data = got_nrc_n, aes(x = sentiment, y = n)) +
+  geom_col()
+```
+
+Or count by sentiment and word, then facet:
+
+```{r}
+got_nrc_n5 <- got_nrc %>% 
+  count(word,sentiment, sort = TRUE) %>% 
+  group_by(sentiment) %>% 
+  top_n(5) %>% 
+  ungroup()
+
+got_nrc_gg <- ggplot(data = got_nrc_n5, aes(x = reorder(word,n), y = n, fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~sentiment, ncol = 2, scales = "free") +
+  coord_flip() +
+  theme_minimal() +
+  labs(x = "Word", y = "count")
+
+got_nrc_gg
+```
+
+saving it:
+
+```{r}
+ggsave(plot = got_nrc_gg, 
+       here("figures","got_nrc_sentiment.png"), 
+       height = 8, 
+       width = 5)
+```
