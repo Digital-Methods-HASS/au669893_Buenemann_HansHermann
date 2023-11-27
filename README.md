@@ -3,7 +3,7 @@
 
 ---
 ## Author
-* Hans Hermann Bünemann Jacobsen, Aarhus University, 202004296@post.au.dk
+Hans Hermann Bünemann Jacobsen, Aarhus University, 202004296@post.au.dk
 
 ## Abstract
 
