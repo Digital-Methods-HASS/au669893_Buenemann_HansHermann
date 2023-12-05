@@ -32,8 +32,8 @@ library(ggwordcloud)
 ### Getting the data:
 
 ```{r get-document}
-german_path <- here("data", "TroveApiData100prDecade.csv")
-german_df <- read_csv("data/TroveApiData100prDecade.csv")
+german_path <- here("data", "TroveApiData54.csv")
+german_df <- read_csv("data/TroveApiData54.csv")
 
 ```
 
@@ -45,7 +45,7 @@ german_tokens <- german_df %>%
 german_tokens
 ```
 
-There are 159,939 "words" (1 or more letter(s) with spaces or punctuation on either side) in the articles altogether.
+There are 85,275 "words" (1 or more letter(s) with spaces or punctuation on either side) in the articles altogether.
 
 
 ## Removing stopwords
@@ -111,7 +111,7 @@ german_exclude_afinn_n <- german_exclude_afinn %>%
 head(german_exclude_afinn_n)
 ```
 
-Excludes germany and german which is good, because they shouldn't have a sentimental value. The word "ger" is probably showing us that there are 259 instances where "german\*" is separated by a new line.
+Excludes germany and german which is good, because they shouldn't have a sentimental value. The word "ger" is probably showing us that there are 146 instances where "german\*" is separated by a new line.
 
 ### Overall sentiment:
 
@@ -163,11 +163,11 @@ most_positive
 
 ```{r}
 german_afinn %>% 
-  filter(id == "261342342")%>% 
+  filter(id == "250094631")%>% 
   select(api_url, word, value)
 ```
 
-Again, only one word was analyzed by AFINN in this article, thereby the very positive score.
+Only two word were analyzed by AFINN in this article, thereby the very positive score.
 
 This makes me wonder how many words that are actually recognized by AFINN on average in the articles, which could provide a significant source of error. This will be investigated in the analysis.
 
@@ -197,7 +197,7 @@ The outbreak of WW2 being defined as when Poland was invaded (1st of September 1
 
 Germany surrendered on the 7th of May 1945.
 
-### After WW2 (1945/05/07 -- 1999/12/13)
+### After WW2 (1945/05/07 -- 1954/12/13)
 
 ## Coding the time periods
 
@@ -281,20 +281,20 @@ german_afinn_39_45_summary <- german_afinn_39_45 %>%
 german_afinn_39_45_summary
 ```
 
-### Sentiment analysis after WW2 1945 - 1999:
+### Sentiment analysis after WW2 1945 - 1954:
 
 ```{r}
-german_afinn_45_99 <- german_afinn %>% 
-  filter(between(date, as.Date("1945-05-07"), as.Date("1999-12-31")))
+german_afinn_45_54 <- german_afinn %>% 
+  filter(between(date, as.Date("1945-05-07"), as.Date("1954-12-31")))
 
-german_afinn_45_99_summary <- german_afinn_45_99 %>% 
+german_afinn_45_54_summary <- german_afinn_45_54 %>% 
   summarize(
-    time_period = "1945-1999",
+    time_period = "1945-1954",
     mean_score = mean(value),
     median_score = median(value),
-    AFINN_word_count_per_article = nrow(german_afinn_45_99) / nrow(german_df %>% filter(between(date, as.Date("1945-05-07"), as.Date("1999-12-31"))))
+    AFINN_word_count_per_article = nrow(german_afinn_45_54) / nrow(german_df %>% filter(between(date, as.Date("1945-05-07"), as.Date("1954-12-31"))))
   )
-german_afinn_45_99_summary
+german_afinn_45_54_summary
 ```
 
 # Visualizing the sentiment analysis results
@@ -303,7 +303,7 @@ german_afinn_45_99_summary
 
 ```{r}
 german_afinn_vertsum <- german_afinn_00_14_summary %>% 
-  bind_rows(german_afinn_14_18_summary, german_afinn_19_33_summary, german_afinn_33_39_summary, german_afinn_39_45_summary, german_afinn_45_99_summary)
+  bind_rows(german_afinn_14_18_summary, german_afinn_19_33_summary, german_afinn_33_39_summary, german_afinn_39_45_summary, german_afinn_45_54_summary)
 
 german_afinn_vertsum
 ```
@@ -364,8 +364,8 @@ german_afinn_mean_sum %>%
 ```
 
 Source for scale_x_date code: <https://r-graph-gallery.com/279-plotting-time-series-with-ggplot2.html>
-Source of help: 
-<http://statseducation.com/Introduction-to-R/modules/graphics/smoothing/>
+
+Source of help:  <http://statseducation.com/Introduction-to-R/modules/graphics/smoothing/>
 
 But this will as discussed earlier be skewed by articles where only 1 or two words were caught by AFINN. Therefore it would be better to not calculate the mean scores of the articles, but simply doing the trend line on all AFINN values:
 
@@ -382,7 +382,7 @@ german_afinn_sum_ungrouped %>%
   labs(title = "Sentiment analysis: Trend line of all AFINN values",
        x = "Article date year",
        y = "AFINN value")+
-  scale_x_date(date_breaks = "5 year", date_labels = "%Y")+
+  scale_x_date(date_breaks = "3 year", date_labels = "%Y")+
   theme(axis.text.x=element_text(angle=45, hjust=1))
 ```
 
@@ -451,37 +451,4 @@ german_afinn_10_24 %>%
 ```
 
 The confusing results of the trend lines gives affirmation to my decision to self assess some time periods for the analysis.
-
-### NRC sentiment
-
-```{r}
-german_nrc <- german_stop %>% 
-  inner_join(get_sentiments("nrc"))
-```
-
-Check exclusions, count which is most excluded:
-
-```{r}
-german_exclude_nrc <- german_stop %>% 
-  anti_join(get_sentiments("nrc"))
-#view(german_exclude_nrc)
-
-german_exclude_nrc_n <- german_exclude_nrc %>% 
-  count(word, sort = TRUE)
-
-head(german_exclude_nrc_n)
-```
-
-ok, nrc excludes "german" and "germany"
-
-## Finding some counts
-
-```{r}
-german_nrc_n <- german_nrc %>% 
-  count(sentiment, sort = TRUE)
-
-# And plot them:
-
-ggplot(data = german_nrc_n, aes(x = sentiment, y = n)) +
-  geom_col()
-```
+The selection of the amount in the span parameter is highly dependend on the amount of data, since a lower values essentially zooms in on the data.
