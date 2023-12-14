@@ -24,7 +24,7 @@ The data was cleaned in OpenRefine, uploading TroveApiData.json, and checking th
 The cleaned data, to be used in R Studio can be seen in the TroveApiData54.csv file.
 
 ### Metadata
-the meta data about the dataset used in R Studio: TroveApiData100prDecade.csv
+the meta data about the dataset used in R Studio: TroveApiData54.csv
 * Id = a number that represents the identifier for the article.
 * heading = the title of the article.
 * article_text = the text in the article, which is the main data used in this analysis.
