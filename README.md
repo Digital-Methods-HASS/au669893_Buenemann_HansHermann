@@ -17,11 +17,11 @@ All data extracted from Trove are from before 1955 and therefore fall under publ
 ## Data
 The data for this project is from the Trove database, collected using their API https://troveconsole.herokuapp.com/.
 
-The 100 most relevant articles were extracted, relevance based on the keyword "german". That data is in the TroveApiData.txt file, and that data is also converted into a JSON file in TroveApiData.json.
+The 100 most relevant articles were extracted, relevance based on the keyword "german". That data is in the TroveApiData54.txt file, and that data is also converted into a JSON file in TroveApiData54.json.
 
 The data was cleaned in OpenRefine, uploading TroveApiData.json, and checking the boxes ”Preserve empty strings”, “Attempt to parse cell text into numbers” and “Trim leading & trailing whitespace from strings”. The operations done in OpenRefine are available in the extractedOperationHistoryOpenrefine.txt file.
 
-The cleaned data, to be used in R Studio can be seen in the TroveApiData100prDecade.csv file.
+The cleaned data, to be used in R Studio can be seen in the TroveApiData54.csv file.
 
 ### Metadata
 the meta data about the dataset used in R Studio: TroveApiData100prDecade.csv
