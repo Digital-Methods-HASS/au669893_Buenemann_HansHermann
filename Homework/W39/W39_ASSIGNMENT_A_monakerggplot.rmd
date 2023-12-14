@@ -1,0 +1,68 @@
+---
+title: "W39 Visualization of the duration of reign among Danish monarchs through time"
+author: "Hans Hermann"
+date: "29/9/2023"
+output: html_document
+---
+
+## Get the necessary packages
+
+I have installed the relevant package 'tidyverse' now applying:
+
+```{r libraries}
+library(tidyverse)
+library(ggplot2)
+```
+
+## Task A
+
+Visualize the duration of reign among Danish kings through time (showing the diachronic trend from ca 900 - today on the x axis) with ggplot. Use the dataset you/your group has created and submit both the script and the visualisation, ideally as part of an rmarkdown and html document (for details see bottom of this page). Experiment with geom_point(), geom_line() or geom_smooth() functions for the geometry.
+
+## My solution
+
+First i create a tibble from the dataset I have created from the earlier homework
+
+```{r }
+monarker <- read_csv2("data/HW2_due19-09_2_tidyversion.csv")
+monarker
+```
+
+I have already created a column in excel that I have called "Regeringstid", by subtracting regent_til with regent_fra in all the rows.
+
+If I hadn't done that, i could create the column by using the mutate() function:
+
+```{r}
+# monarker %>% 
+#   mutate(regeringstid = regent_til - regent_fra)
+
+```
+
+Now for creating a visualization with bars for each monarch:
+
+(I made a column in excel called "nr_monark" with values corresponding to the monarchs' number in time, because I couldn't figure out how to create it in R.)
+
+```{r}
+
+monarker %>%
+  ggplot(aes(x = reorder(monark, +nr_monark), y = regeringstid)) +
+  geom_bar(stat = "identity") +
+  geom_smooth() +
+  labs(title = "Duration of reign among Danish monarchs through time",
+       x = "Monarch",
+       y = "Years ruled") +
+  theme_bw() +
+  theme(axis.text.x = element_text(size = 7.5, angle = 90, hjust = 1, vjust = 0.3),
+        axis.text.y = element_text(colour = "grey20", size = 12),
+        text = element_text(size = 14))
+
+```
+
+We can also create a trend line using geom_point() + geom_smooth() instead of geom_bar().
+
+```{r}
+monarker %>% 
+  ggplot(aes(x = regent_fra, y = regeringstid))+
+  geom_point(color="red")+
+  geom_smooth()+
+  labs(x="Time",y="Duration of reign")
+```
