@@ -169,7 +169,7 @@ german_afinn %>%
 
 Only two word were analyzed by AFINN in this article, thereby the very positive score.
 
-This makes me wonder how many words that are actually recognized by AFINN on average in the articles, which could provide a significant source of error. This will be investigated in the analysis.
+This makes me wonder how many words that are actually recognized by AFINN on average in the articles, which could provide a significant source of error. This will be investigated later in the analysis.
 
 # Sentiment scores by period
 
@@ -451,4 +451,4 @@ german_afinn_10_24 %>%
 ```
 
 The confusing results of the trend lines gives affirmation to my decision to self assess some time periods for the analysis.
-The selection of the amount in the span parameter is highly dependend on the amount of data, since a lower values essentially zooms in on the data.
+The selection of the amount in the span parameter is highly dependent on the amount of data, since a lower value essentially zooms in on the data.
