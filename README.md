@@ -1,4 +1,4 @@
-# Views on Germans during first half of 20th century
+# Australian views on Germans during first half of the 20th century
 
 
 ---
